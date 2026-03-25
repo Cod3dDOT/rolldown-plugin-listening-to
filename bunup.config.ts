@@ -8,6 +8,7 @@ export default defineConfig({
 	format: "esm",
 	target: "node",
 	minify: true,
+	external: ["sharp", "vite", "zod"],
 	report: {
 		brotli: true,
 	},
