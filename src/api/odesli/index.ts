@@ -6,12 +6,12 @@
 
 // biome-ignore lint/performance/noNamespaceImport: preferred way
 import * as z from "zod/mini";
-import { fetchAndValidate } from "@/api";
-import type { StreamingServices } from "@/types.ts";
+import { fetchAndValidate } from "@/api/fetch.ts";
+import type { StreamingServices } from "@/types.d.ts";
 
 const OdesliLinkSchema = z.object({
 	url: z.url(),
-	entityUniqueId: z.string()
+	entityUniqueId: z.string(),
 });
 
 const OdesliEntitySchema = z.object({
@@ -21,7 +21,7 @@ const OdesliEntitySchema = z.object({
 	artistName: z.optional(z.string()),
 	thumbnailUrl: z.optional(z.string()),
 	apiProvider: z.string(),
-	platforms: z.array(z.string())
+	platforms: z.array(z.string()),
 });
 
 const OdesliResponseSchema = z.object({
@@ -29,11 +29,11 @@ const OdesliResponseSchema = z.object({
 	userCountry: z.string(),
 	pageUrl: z.url(),
 	linksByPlatform: z.optional(z.record(z.string(), OdesliLinkSchema)),
-	entitiesByUniqueId: z.record(z.string(), OdesliEntitySchema)
+	entitiesByUniqueId: z.record(z.string(), OdesliEntitySchema),
 });
 
 export async function odesliStreamingServices(
-	url: string
+	url: string,
 ): Promise<StreamingServices> {
 	const apiUrl = new URL("https://api.song.link/v1-alpha.1/links");
 	apiUrl.searchParams.set("url", url);
@@ -56,7 +56,7 @@ export async function odesliStreamingServices(
 		youtube: "youtube",
 		tidal: "tidal",
 		soundcloud: "soundcloud",
-		bandcamp: "bandcamp"
+		bandcamp: "bandcamp",
 	};
 
 	const result: StreamingServices = Object.fromEntries(
@@ -65,7 +65,7 @@ export async function odesliStreamingServices(
 				const link = linksByPlatform[odesliKey];
 				return link ? [serviceKey, link.url] : null;
 			})
-			.filter(Boolean) as [keyof StreamingServices, string][]
+			.filter(Boolean) as [keyof StreamingServices, string][],
 	) as StreamingServices;
 
 	return result;

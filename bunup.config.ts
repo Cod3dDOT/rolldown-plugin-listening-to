@@ -9,9 +9,9 @@ export default defineConfig({
 	target: "node",
 	minify: true,
 	report: {
-		brotli: true
+		brotli: true,
 	},
 	dts: {
-		minify: true
-	}
+		minify: true,
+	},
 });

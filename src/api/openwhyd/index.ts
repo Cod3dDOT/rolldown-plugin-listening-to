@@ -6,26 +6,26 @@
 
 // biome-ignore lint/performance/noNamespaceImport: preferred way
 import * as z from "zod/mini";
-import { fetchAndValidate } from "@/api";
-import type { StreamingServices } from "@/types.ts";
+import { fetchAndValidate } from "@/api/fetch.ts";
+import type { StreamingServices } from "@/types.d.ts";
 
 const OpenwhydTrackSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	eId: z.string(),
 	img: z.optional(z.string()),
-	url: z.optional(z.url())
+	url: z.optional(z.url()),
 });
 
 const OpenwhydResponseSchema = z.object({
 	results: z.object({
-		posts: z.array(OpenwhydTrackSchema)
-	})
+		posts: z.array(OpenwhydTrackSchema),
+	}),
 });
 
 export async function openwhydStreamingServices(
 	title: string,
-	artist: string
+	artist: string,
 ): Promise<StreamingServices> {
 	const apiUrl = new URL("https://openwhyd.org/search");
 	apiUrl.searchParams.set("q", `${artist} ${title}`);

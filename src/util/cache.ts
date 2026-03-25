@@ -4,33 +4,33 @@
  * SPDX-License-Identifier: MIT
  */
 
-export class Cache<T> {
-	private readonly ttl: number;
-	private memoryCache: T | null = null;
-	private timestamp = 0;
+export class Cache<T extends object> {
+	readonly #ttl: number;
+	#memoryCache: T | null = null;
+	#timestamp = 0;
 
 	constructor(ttlMs: number) {
-		this.ttl = ttlMs;
+		this.#ttl = ttlMs;
 	}
 
-	private isValid(): boolean {
-		return this.memoryCache !== null && Date.now() - this.timestamp < this.ttl;
+	#isValid(): boolean {
+		return (
+			this.#memoryCache !== null &&
+			Date.now() - this.#timestamp < this.#ttl
+		);
 	}
 
 	get(): T | null {
-		if (this.isValid()) {
-			return this.memoryCache;
-		}
-		return null;
+		return this.#isValid() ? this.#memoryCache : null;
 	}
 
 	set(data: T): void {
-		this.memoryCache = data;
-		this.timestamp = Date.now();
+		this.#memoryCache = data;
+		this.#timestamp = Date.now();
 	}
 
 	clear(): void {
-		this.memoryCache = null;
-		this.timestamp = 0;
+		this.#memoryCache = null;
+		this.#timestamp = 0;
 	}
 }

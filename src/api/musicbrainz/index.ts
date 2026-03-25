@@ -6,8 +6,8 @@
 
 // biome-ignore lint/performance/noNamespaceImport: preferred way
 import * as z from "zod/mini";
-import { fetchAndValidate } from "@/api";
-import type { StreamingServices } from "@/types.ts";
+import { fetchAndValidate } from "@/api/fetch.ts";
+import type { StreamingServices } from "@/types.d.ts";
 
 const makeTrackIdSchema = (key: string) =>
 	z.array(z.object({ [key]: z.optional(z.array(z.string())) }));
@@ -22,20 +22,23 @@ type MusicBrainzStreamingServices = Pick<
 
 export async function musicbrainzStreamingServices(
 	title: string,
-	artist: string
+	artist: string,
 ): Promise<MusicBrainzStreamingServices> {
 	const params = new URLSearchParams({ title, artist });
 	const base = "https://labs.api.listenbrainz.org";
 
-	const spotifyUrl = new URL(`/spotify-id-from-metadata/json?${params}`, base);
+	const spotifyUrl = new URL(
+		`/spotify-id-from-metadata/json?${params}`,
+		base,
+	);
 	const appleUrl = new URL(
 		`/apple-music-id-from-metadata/json?${params}`,
-		base
+		base,
 	);
 
 	const [spotifyRes, appleRes] = await Promise.all([
 		fetchAndValidate(spotifyUrl, MusicBrainzSpotifySchema),
-		fetchAndValidate(appleUrl, MusicBrainzAppleSchema)
+		fetchAndValidate(appleUrl, MusicBrainzAppleSchema),
 	]);
 
 	const spotifyId = spotifyRes?.[0]?.spotify_track_ids?.[0];
@@ -45,6 +48,8 @@ export async function musicbrainzStreamingServices(
 		spotify: spotifyId
 			? `https://open.spotify.com/track/${spotifyId}`
 			: undefined,
-		apple: appleId ? `https://music.apple.com/us/song/${appleId}` : undefined
+		apple: appleId
+			? `https://music.apple.com/us/song/${appleId}`
+			: undefined,
 	};
 }

@@ -7,45 +7,55 @@
 import { musicbrainzStreamingServices } from "@/api/musicbrainz/index.ts";
 import { odesliStreamingServices } from "@/api/odesli/index.ts";
 import { openwhydStreamingServices } from "@/api/openwhyd/index.ts";
-import type { StreamingServiceProvider, StreamingServices } from "./types.ts";
+import type { StreamingServiceProvider, StreamingServices } from "./types.d.ts";
 
-/**
- * Merge multiple streaming service sources into one unified object.
- */
+/** Merge multiple partial StreamingServices objects into one. */
 const mergeServices = (
 	...sources: Partial<StreamingServices>[]
 ): StreamingServices => Object.assign({}, ...sources);
 
 /**
- * Determines the best reference service for Odesli lookups.
+ * Pick the best available URL to hand to Odesli for cross-platform lookup.
+ * Preference order: Spotify → Apple Music → YouTube.
  */
 const selectBestReference = (services: StreamingServices): string | undefined =>
 	services.spotify ?? services.apple ?? services.youtube;
 
-const providers: Record<
-	StreamingServiceProvider,
-	(...args: string[]) => Promise<StreamingServices>
-> = {
+type ProviderFn = (...args: string[]) => Promise<StreamingServices>;
+
+const PROVIDER_MAP: Record<StreamingServiceProvider, ProviderFn> = {
 	musicbrainz: musicbrainzStreamingServices,
 	openwhyd: openwhydStreamingServices,
-	odesli: odesliStreamingServices
+	odesli: odesliStreamingServices,
 };
 
-export const getStreamingServices = async (
+export interface GetStreamingServicesConfig {
+	/** Which providers to query. Defaults to all three. */
+	use?: StreamingServiceProvider[];
+}
+
+/**
+ * Fetch streaming-service links for a track.
+ *
+ * Odesli is always run last because it needs a reference URL from one
+ * of the other providers. Non-Odesli providers are queried in parallel.
+ */
+export async function getStreamingServices(
 	title: string,
 	artist: string,
-	config: {
-		use: StreamingServiceProvider[];
-	} = { use: ["musicbrainz", "openwhyd", "odesli"] }
-): Promise<StreamingServices> => {
-	const baseProviders = config.use.filter(
-		(p) => p in providers && p !== "odesli"
-	);
-	const includeOdesli = config.use.includes("odesli");
+	config: GetStreamingServicesConfig = {},
+): Promise<StreamingServices> {
+	const { use = ["musicbrainz", "openwhyd", "odesli"] } = config;
 
-	// Fetch non-Odesli providers in parallel
+	const baseProviderKeys = use.filter(
+		(p): p is Exclude<StreamingServiceProvider, "odesli"> =>
+			p in PROVIDER_MAP && p !== "odesli",
+	);
+	const includeOdesli = use.includes("odesli");
+
+	// Non-Odesli providers can all run concurrently.
 	const baseResults = await Promise.all(
-		baseProviders.map((p) => providers[p](title, artist))
+		baseProviderKeys.map((p) => PROVIDER_MAP[p](title, artist)),
 	);
 	const baseServices = mergeServices(...baseResults);
 
@@ -55,9 +65,10 @@ export const getStreamingServices = async (
 
 	const referenceUrl = selectBestReference(baseServices);
 	if (!referenceUrl) {
+		// No URL to hand to Odesli — return what we have.
 		return baseServices;
 	}
 
-	const odesli = await providers.odesli(referenceUrl);
-	return mergeServices(baseServices, odesli);
-};
+	const odesliServices = await PROVIDER_MAP.odesli(referenceUrl);
+	return mergeServices(baseServices, odesliServices);
+}

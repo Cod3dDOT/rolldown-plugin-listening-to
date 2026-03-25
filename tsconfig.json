@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"baseUrl": "./src",
 		"paths": {
-			"@/*": ["*"]
+			"@/*": ["./*"],
 		},
 
 		"target": "es2024",
@@ -25,9 +25,9 @@
 
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
-		"noPropertyAccessFromIndexSignature": false
+		"noPropertyAccessFromIndexSignature": false,
 	},
 
-	"include": ["src/**/*"],
-	"exclude": ["node_modules", "dist", "bunup.config.ts"]
+	"include": ["src/**/*", "src/types.d/.ts"],
+	"exclude": ["node_modules", "dist", "bunup.config.ts"],
 }

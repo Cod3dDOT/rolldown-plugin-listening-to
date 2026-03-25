@@ -5,13 +5,13 @@
  */
 
 import type { Plugin } from "vite";
-import { fetchMusicTrack } from "./index.ts";
+import { fetchMusicTrack } from "@/api/index.ts";
 import type {
 	LastFmPluginOptions,
 	MusicTrack,
-	ResolvedPluginOptions
-} from "./types.ts";
-import { Cache } from "./util/cache.ts";
+	ResolvedPluginOptions,
+} from "@/types.d.ts";
+import { Cache } from "@/util/cache.ts";
 
 const VIRTUAL_MODULE_ID = "virtual:vite-listening-to";
 const RESOLVED_ID = `\0${VIRTUAL_MODULE_ID}`;
@@ -21,7 +21,7 @@ const DEFAULT_OPTIONS: ResolvedPluginOptions = {
 	apiKey: "",
 	providers: ["musicbrainz", "openwhyd", "odesli"],
 	// biome-ignore lint/style/noMagicNumbers: 5 minutes
-	cacheTTL: 5 * 60 * 1000
+	cacheTTL: 5 * 60 * 1000,
 } as const;
 
 function resolveOptions(options: LastFmPluginOptions): ResolvedPluginOptions {
@@ -31,7 +31,7 @@ function resolveOptions(options: LastFmPluginOptions): ResolvedPluginOptions {
 
 	return {
 		...DEFAULT_OPTIONS,
-		...options
+		...options,
 	};
 }
 
@@ -41,6 +41,12 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 
 	return {
 		name: "vite-listening-to",
+
+		// Run during both dev (serve) and production builds.
+		// The cache is intentionally shared across environments within a
+		// single build process (Vite 6+ builds all environments in one
+		// process), so we only need one cache instance per plugin invocation.
+		apply: "build",
 
 		buildStart() {
 			cache.clear();
@@ -59,19 +65,30 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 
 			let track = cache.get();
 
-			if (track) {
-				console.log("LAST-FM-TRACK: using cached track:", track.title);
-			} else {
-				console.log("LAST-FM-TRACK: fetching fresh Last.fm data");
+			if (track === null) {
+				this.warn("LAST-FM-TRACK: fetching fresh Last.fm data");
 				track = await fetchMusicTrack(
 					resolvedOptions.apiKey,
-					resolvedOptions.userId
+					resolvedOptions.userId,
+					{ use: resolvedOptions.providers },
 				);
-				cache.set(track);
-				console.log("LAST-FM-TRACK: cached track:", track.title);
+				if (track) {
+					cache.set(track);
+					this.warn(`LAST-FM-TRACK: cached track: ${track.title}`);
+				} else {
+					this.error("LAST-FM-TRACK: could not fetch track");
+				}
+			} else {
+				this.warn(`LAST-FM-TRACK: using cached track: ${track.title}`);
 			}
 
-			return `export const musicTrack: MusicTrack = ${JSON.stringify(track)};`;
-		}
+			// Emit a fully self-contained ES module. The MusicTrack type is
+			// only needed at compile-time by the consumer; the runtime value
+			// is a plain object that matches the shape.
+			return [
+				`/** @type {import("vite-listening-to").MusicTrack} */`,
+				`export const musicTrack = ${JSON.stringify(track, null, 2)};`,
+			].join("\n");
+		},
 	};
 }

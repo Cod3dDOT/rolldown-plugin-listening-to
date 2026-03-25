@@ -6,11 +6,11 @@
 
 // biome-ignore lint/performance/noNamespaceImport: preferred way
 import * as z from "zod/mini";
-import { fetchAndValidate } from "@/api";
+import { fetchAndValidate } from "@/api/fetch.ts";
 
 const LastFmImageSchema = z.object({
 	size: z.string(),
-	"#text": z.string()
+	"#text": z.string(),
 });
 
 const LastFmTrackSchema = z.object({
@@ -18,13 +18,13 @@ const LastFmTrackSchema = z.object({
 	name: z.string(),
 	artist: z.object({ "#text": z.string() }),
 	image: z.array(LastFmImageSchema),
-	album: z.object({ "#text": z.string() })
+	album: z.object({ "#text": z.string() }),
 });
 
 const LastFmUserResponseSchema = z.object({
 	recenttracks: z.object({
-		track: z.array(LastFmTrackSchema)
-	})
+		track: z.array(LastFmTrackSchema),
+	}),
 });
 
 export interface LastFmTrack {
@@ -37,13 +37,13 @@ export interface LastFmTrack {
 
 export const getLastSong = async (
 	key: string,
-	user: string
+	user: string,
 ): Promise<LastFmTrack> => {
 	const params = new URLSearchParams({
 		method: "user.getrecenttracks",
 		user,
 		api_key: key,
-		format: "json"
+		format: "json",
 	});
 	const url = new URL("https://ws.audioscrobbler.com/2.0/");
 
@@ -56,7 +56,7 @@ export const getLastSong = async (
 		title: "",
 		album: "",
 		artist: "",
-		albumCover: undefined
+		albumCover: undefined,
 	};
 
 	if (!userResponse || userResponse?.recenttracks?.track?.length === 0) {
@@ -84,6 +84,6 @@ export const getLastSong = async (
 		title: lastTrack.name,
 		album: lastTrack.album["#text"],
 		artist: lastTrack.artist["#text"],
-		albumCover: thumbnail
+		albumCover: thumbnail,
 	};
 };

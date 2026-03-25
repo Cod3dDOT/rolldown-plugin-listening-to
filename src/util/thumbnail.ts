@@ -5,19 +5,29 @@
  */
 
 import sharp from "sharp";
-import { arrayBufferToDataUri } from "./util/urlToDataUrl.ts";
+import { arrayBufferToDataUri } from "./urlToDataUrl.ts";
 
+/** Square size used for album cover thumbnails (pixels). */
 const IMAGE_SIZE = 50;
 
+/**
+ * Downloads an album cover, resizes it to a small square thumbnail,
+ * re-encodes it as WebP, and returns a base64 data URI.
+ *
+ * Returns `null` when no URL is provided or processing fails.
+ */
 export async function processAlbumCover(
-	imageUrl: string | undefined
-): Promise<string | undefined> {
+	imageUrl: string | null | undefined,
+): Promise<string | null> {
 	if (!imageUrl) {
-		return undefined;
+		return null;
 	}
 
 	try {
 		const response = await fetch(imageUrl);
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status} fetching album cover`);
+		}
 		const arrayBuffer = await response.arrayBuffer();
 
 		const resized = await sharp(Buffer.from(arrayBuffer))
@@ -28,6 +38,6 @@ export async function processAlbumCover(
 		return arrayBufferToDataUri(resized, "image/webp");
 	} catch (error) {
 		console.warn("Failed to process album cover:", error);
-		return undefined;
+		return null;
 	}
 }

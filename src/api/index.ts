@@ -4,29 +4,33 @@
  * SPDX-License-Identifier: MIT
  */
 
-// biome-ignore lint/performance/noNamespaceImport: preferred way
-import * as z from "zod/mini";
+import { getLastSong } from "@/api/lastfm/index.ts";
+import { getStreamingServices } from "@/streamingServices.ts";
+import type { GetStreamingServicesConfig } from "@/streamingServices.ts";
+import { processAlbumCover } from "@/util/thumbnail.ts";
+import type { MusicTrack } from "@/types.d.ts";
 
-z.config(z.locales.en());
+export async function fetchMusicTrack(
+	apiKey: string,
+	userId: string,
+	config: GetStreamingServicesConfig = {},
+): Promise<MusicTrack | null> {
+	const lastFmTrack = await getLastSong(apiKey, userId);
 
-export async function fetchAndValidate<T>(
-	url: URL,
-	schema: z.ZodMiniType<T>
-): Promise<T | null> {
-	try {
-		const res = await fetch(url);
-		if (!res.ok) {
-			throw new Error(`HTTP ${res.status}`);
-		}
-		const data = await res.json();
-		const parsed = schema.safeParse(data);
-		if (!parsed.success) {
-			console.error(`Invalid response for ${url}`, parsed.error);
-			return null;
-		}
-		return parsed.data;
-	} catch (err) {
-		console.error(`Error fetching ${url}`, err);
+	if (!lastFmTrack.title && !lastFmTrack.artist) {
 		return null;
 	}
+
+	const [streamingServices, albumCover] = await Promise.all([
+		getStreamingServices(lastFmTrack.title, lastFmTrack.artist, config),
+		processAlbumCover(lastFmTrack.albumCover),
+	]);
+
+	return {
+		title: lastFmTrack.title,
+		artist: lastFmTrack.artist,
+		album: lastFmTrack.album,
+		albumCover,
+		services: streamingServices,
+	};
 }

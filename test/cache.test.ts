@@ -64,7 +64,7 @@ describe("Cache", () => {
 			const data: TestData = {
 				id: 1,
 				name: "test",
-				nested: { value: true }
+				nested: { value: true },
 			};
 
 			cache.set(data);
