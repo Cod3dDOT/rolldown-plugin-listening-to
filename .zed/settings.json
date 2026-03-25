@@ -1,0 +1,21 @@
+{
+	"code_actions_on_format": {
+		"source.action.useSortedKeys.biome": true,
+		"source.fixAll.biome": true
+	},
+	"formatter": "language_server",
+	"languages": {
+		"JavaScript": {
+			"format_on_save": "on",
+			"formatter": "language_server"
+		},
+		"JSON": {
+			"format_on_save": "on",
+			"formatter": "language_server"
+		},
+		"TypeScript": {
+			"format_on_save": "on",
+			"formatter": "language_server"
+		}
+	}
+}

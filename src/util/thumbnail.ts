@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -17,7 +17,7 @@ const IMAGE_SIZE = 50;
  * Returns `null` when no URL is provided or processing fails.
  */
 export async function processAlbumCover(
-	imageUrl: string | null | undefined,
+	imageUrl: string | null | undefined
 ): Promise<string | null> {
 	if (!imageUrl) {
 		return null;
@@ -37,7 +37,7 @@ export async function processAlbumCover(
 
 		return arrayBufferToDataUri(resized, "image/webp");
 	} catch (error) {
-		console.warn("Failed to process album cover:", error);
+		console.error("Failed to process album cover:", error);
 		return null;
 	}
 }

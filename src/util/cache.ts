@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -14,10 +14,7 @@ export class Cache<T extends object> {
 	}
 
 	#isValid(): boolean {
-		return (
-			this.#memoryCache !== null &&
-			Date.now() - this.#timestamp < this.#ttl
-		);
+		return this.#memoryCache !== null && Date.now() - this.#timestamp < this.#ttl;
 	}
 
 	get(): T | null {

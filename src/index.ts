@@ -1,14 +1,15 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
 
+// biome-ignore lint/performance/noBarrelFile: library entry point, not an app barrel
 export { createPlugin as ViteListeningTo } from "@/plugin.ts";
+export type { GetStreamingServicesConfig } from "@/streamingServices.ts";
 export type {
 	LastFmPluginOptions,
 	MusicTrack,
-	StreamingServices,
 	StreamingServiceProvider,
+	StreamingServices
 } from "@/types.d.ts";
-export type { GetStreamingServicesConfig } from "@/streamingServices.ts";

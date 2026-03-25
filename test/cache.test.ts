@@ -1,9 +1,10 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
 
+// biome-ignore lint/correctness/noUnresolvedImports: bun built-in module
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Cache } from "../src/util/cache.ts";
 
@@ -64,7 +65,7 @@ describe("Cache", () => {
 			const data: TestData = {
 				id: 1,
 				name: "test",
-				nested: { value: true },
+				nested: { value: true }
 			};
 
 			cache.set(data);

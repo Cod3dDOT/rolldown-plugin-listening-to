@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
+#
+# SPDX-License-Identifier: MIT
+
+pre-commit:
+    parallel: true
+    commands:
+        lint:
+            glob: "*.{js,mjs,ts,astro}"
+            run: bun run lint {staged_files}
+        reuse:
+            run: reuse lint
+commit-msg:
+    commands:
+        "lint commit message":
+            run: bunx commitlint --edit {1}
+pre-push:
+    commands:
+        lint:
+            glob: "*.{js,ts,mjs,jsx,tsx,css,scss}"
+            run: bun run lint {push_files}
+        build:
+            run: bun run build
+            stage_fixed: true

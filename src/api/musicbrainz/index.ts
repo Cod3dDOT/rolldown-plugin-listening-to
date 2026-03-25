@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -15,41 +15,28 @@ const makeTrackIdSchema = (key: string) =>
 const MusicBrainzSpotifySchema = makeTrackIdSchema("spotify_track_ids");
 const MusicBrainzAppleSchema = makeTrackIdSchema("apple_music_track_ids");
 
-type MusicBrainzStreamingServices = Pick<
-	StreamingServices,
-	"spotify" | "apple"
->;
+type MusicBrainzStreamingServices = Pick<StreamingServices, "spotify" | "apple">;
 
 export async function musicbrainzStreamingServices(
 	title: string,
-	artist: string,
+	artist: string
 ): Promise<MusicBrainzStreamingServices> {
-	const params = new URLSearchParams({ title, artist });
+	const params = new URLSearchParams({ artist, title });
 	const base = "https://labs.api.listenbrainz.org";
 
-	const spotifyUrl = new URL(
-		`/spotify-id-from-metadata/json?${params}`,
-		base,
-	);
-	const appleUrl = new URL(
-		`/apple-music-id-from-metadata/json?${params}`,
-		base,
-	);
+	const spotifyUrl = new URL(`/spotify-id-from-metadata/json?${params}`, base);
+	const appleUrl = new URL(`/apple-music-id-from-metadata/json?${params}`, base);
 
 	const [spotifyRes, appleRes] = await Promise.all([
 		fetchAndValidate(spotifyUrl, MusicBrainzSpotifySchema),
-		fetchAndValidate(appleUrl, MusicBrainzAppleSchema),
+		fetchAndValidate(appleUrl, MusicBrainzAppleSchema)
 	]);
 
 	const spotifyId = spotifyRes?.[0]?.spotify_track_ids?.[0];
 	const appleId = appleRes?.[0]?.apple_music_track_ids?.[0];
 
 	return {
-		spotify: spotifyId
-			? `https://open.spotify.com/track/${spotifyId}`
-			: undefined,
-		apple: appleId
-			? `https://music.apple.com/us/song/${appleId}`
-			: undefined,
+		apple: appleId ? `https://music.apple.com/us/song/${appleId}` : undefined,
+		spotify: spotifyId ? `https://open.spotify.com/track/${spotifyId}` : undefined
 	};
 }

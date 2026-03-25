@@ -1,18 +1,25 @@
+/*
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 import { defineConfig } from "bunup";
 
+// biome-ignore lint/style/noDefaultExport: required by bunup
 export default defineConfig({
-	entry: "src/index.ts",
-	sourceBase: "./src",
-	outDir: "dist",
-	name: "node",
-	format: "esm",
-	target: "node",
-	minify: true,
-	external: ["sharp", "vite", "zod"],
-	report: {
-		brotli: true,
-	},
 	dts: {
-		minify: true,
+		minify: true
 	},
+	entry: "src/index.ts",
+	external: ["sharp", "vite", "zod"],
+	format: "esm",
+	minify: true,
+	name: "node",
+	outDir: "dist",
+	report: {
+		brotli: true
+	},
+	sourceBase: "./src",
+	target: "node"
 });

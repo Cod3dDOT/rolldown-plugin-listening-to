@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -10,22 +10,22 @@ import { fetchAndValidate } from "@/api/fetch.ts";
 import type { StreamingServices } from "@/types.d.ts";
 
 const OpenwhydTrackSchema = z.object({
-	id: z.string(),
-	name: z.string(),
 	eId: z.string(),
+	id: z.string(),
 	img: z.optional(z.string()),
-	url: z.optional(z.url()),
+	name: z.string(),
+	url: z.optional(z.url())
 });
 
 const OpenwhydResponseSchema = z.object({
 	results: z.object({
-		posts: z.array(OpenwhydTrackSchema),
-	}),
+		posts: z.array(OpenwhydTrackSchema)
+	})
 });
 
 export async function openwhydStreamingServices(
 	title: string,
-	artist: string,
+	artist: string
 ): Promise<StreamingServices> {
 	const apiUrl = new URL("https://openwhyd.org/search");
 	apiUrl.searchParams.set("q", `${artist} ${title}`);

@@ -1,37 +1,33 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
 
 import type { Plugin } from "vite";
 import { fetchMusicTrack } from "@/api/index.ts";
-import type {
-	LastFmPluginOptions,
-	MusicTrack,
-	ResolvedPluginOptions,
-} from "@/types.d.ts";
+import type { LastFmPluginOptions, MusicTrack, ResolvedPluginOptions } from "@/types.d.ts";
 import { Cache } from "@/util/cache.ts";
 
 const VIRTUAL_MODULE_ID = "virtual:vite-listening-to";
 const RESOLVED_ID = `\0${VIRTUAL_MODULE_ID}`;
 
 const DEFAULT_OPTIONS: ResolvedPluginOptions = {
-	userId: "",
 	apiKey: "",
-	providers: ["musicbrainz", "openwhyd", "odesli"],
 	// biome-ignore lint/style/noMagicNumbers: 5 minutes
 	cacheTTL: 5 * 60 * 1000,
+	providers: ["musicbrainz", "openwhyd", "odesli"],
+	userId: ""
 } as const;
 
 function resolveOptions(options: LastFmPluginOptions): ResolvedPluginOptions {
-	if (!options.apiKey || !options.userId) {
+	if (!(options.apiKey && options.userId)) {
 		throw new Error("API key and user ID must be specified");
 	}
 
 	return {
 		...DEFAULT_OPTIONS,
-		...options,
+		...options
 	};
 }
 
@@ -40,8 +36,6 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 	const cache = new Cache<MusicTrack>(resolvedOptions.cacheTTL);
 
 	return {
-		name: "vite-listening-to",
-
 		// Run during both dev (serve) and production builds.
 		// The cache is intentionally shared across environments within a
 		// single build process (Vite 6+ builds all environments in one
@@ -50,12 +44,6 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 
 		buildStart() {
 			cache.clear();
-		},
-
-		resolveId(id) {
-			if (id === VIRTUAL_MODULE_ID) {
-				return RESOLVED_ID;
-			}
 		},
 
 		async load(id) {
@@ -67,11 +55,9 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 
 			if (track === null) {
 				this.warn("LAST-FM-TRACK: fetching fresh Last.fm data");
-				track = await fetchMusicTrack(
-					resolvedOptions.apiKey,
-					resolvedOptions.userId,
-					{ use: resolvedOptions.providers },
-				);
+				track = await fetchMusicTrack(resolvedOptions.apiKey, resolvedOptions.userId, {
+					use: resolvedOptions.providers
+				});
 				if (track) {
 					cache.set(track);
 					this.warn(`LAST-FM-TRACK: cached track: ${track.title}`);
@@ -87,8 +73,15 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 			// is a plain object that matches the shape.
 			return [
 				`/** @type {import("vite-listening-to").MusicTrack} */`,
-				`export const musicTrack = ${JSON.stringify(track, null, 2)};`,
+				`export const musicTrack = ${JSON.stringify(track, null, 2)};`
 			].join("\n");
 		},
+		name: "vite-listening-to",
+
+		resolveId(id) {
+			if (id === VIRTUAL_MODULE_ID) {
+				return RESOLVED_ID;
+			}
+		}
 	};
 }

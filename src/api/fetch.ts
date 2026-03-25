@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -18,7 +18,7 @@ z.config(z.locales.en());
 export async function fetchAndValidate<T>(
 	url: URL,
 	schema: z.ZodMiniType<T>,
-	init?: RequestInit,
+	init?: RequestInit
 ): Promise<T | null> {
 	const href = url.toString();
 	try {
@@ -30,10 +30,7 @@ export async function fetchAndValidate<T>(
 		const data: unknown = await res.json();
 		const parsed = schema.safeParse(data);
 		if (!parsed.success) {
-			console.error(
-				`fetchAndValidate: invalid response for ${href}`,
-				parsed.error,
-			);
+			console.error(`fetchAndValidate: invalid response for ${href}`, parsed.error);
 			return null;
 		}
 		return parsed.data;

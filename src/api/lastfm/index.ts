@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 cod3ddot@proton.me
+ * SPDX-FileCopyrightText: 2026 cod3ddot@proton.me
  *
  * SPDX-License-Identifier: MIT
  */
@@ -9,22 +9,22 @@ import * as z from "zod/mini";
 import { fetchAndValidate } from "@/api/fetch.ts";
 
 const LastFmImageSchema = z.object({
-	size: z.string(),
 	"#text": z.string(),
+	size: z.string()
 });
 
 const LastFmTrackSchema = z.object({
-	mbid: z.string(),
-	name: z.string(),
+	album: z.object({ "#text": z.string() }),
 	artist: z.object({ "#text": z.string() }),
 	image: z.array(LastFmImageSchema),
-	album: z.object({ "#text": z.string() }),
+	mbid: z.string(),
+	name: z.string()
 });
 
 const LastFmUserResponseSchema = z.object({
 	recenttracks: z.object({
-		track: z.array(LastFmTrackSchema),
-	}),
+		track: z.array(LastFmTrackSchema)
+	})
 });
 
 export interface LastFmTrack {
@@ -35,15 +35,12 @@ export interface LastFmTrack {
 	albumCover?: string;
 }
 
-export const getLastSong = async (
-	key: string,
-	user: string,
-): Promise<LastFmTrack> => {
+export const getLastSong = async (key: string, user: string): Promise<LastFmTrack> => {
 	const params = new URLSearchParams({
-		method: "user.getrecenttracks",
-		user,
 		api_key: key,
 		format: "json",
+		method: "user.getrecenttracks",
+		user
 	});
 	const url = new URL("https://ws.audioscrobbler.com/2.0/");
 
@@ -52,11 +49,11 @@ export const getLastSong = async (
 	const userResponse = await fetchAndValidate(url, LastFmUserResponseSchema);
 
 	const emptyTrack: LastFmTrack = {
-		mbid: "",
-		title: "",
 		album: "",
-		artist: "",
 		albumCover: undefined,
+		artist: "",
+		mbid: "",
+		title: ""
 	};
 
 	if (!userResponse || userResponse?.recenttracks?.track?.length === 0) {
@@ -73,17 +70,16 @@ export const getLastSong = async (
 
 	// Filter out Last.fm placeholder image
 	if (
-		thumbnail ===
-		"https://lastfm.freetls.fastly.net/i/u/34s/2a96cbd8b46e442fc41c2b86b821562f.png"
+		thumbnail === "https://lastfm.freetls.fastly.net/i/u/34s/2a96cbd8b46e442fc41c2b86b821562f.png"
 	) {
 		thumbnail = undefined;
 	}
 
 	return {
-		mbid: lastTrack.mbid,
-		title: lastTrack.name,
 		album: lastTrack.album["#text"],
-		artist: lastTrack.artist["#text"],
 		albumCover: thumbnail,
+		artist: lastTrack.artist["#text"],
+		mbid: lastTrack.mbid,
+		title: lastTrack.name
 	};
 };
