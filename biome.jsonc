@@ -11,13 +11,7 @@
 	},
 	"files": {
 		"ignoreUnknown": true,
-		"includes": [
-			"**",
-			"!dist",
-			"!node_modules",
-			"!*.min.js",
-			"!bun.lock"
-		]
+		"includes": ["**", "!dist", "!node_modules", "!*.min.js", "!bun.lock"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -48,7 +42,10 @@
 			},
 			"performance": "on",
 			"security": "on",
-			"style": "on",
+			"style": {
+				"noMagicNumbers": "off",
+				"recommended": true
+			},
 			"suspicious": {
 				"noConsole": "off",
 				"recommended": true

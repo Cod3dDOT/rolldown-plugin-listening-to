@@ -6,10 +6,9 @@
 
 import { defineConfig } from "tsdown";
 
-// biome-ignore lint/style/noDefaultExport: required by tsdown
 export default defineConfig({
 	clean: true,
-	deps: { neverBundle: ["sharp", "vite", "zod"] },
+	deps: { neverBundle: ["sharp", "zod"] },
 	dts: true,
 	entry: "src/index.ts",
 	format: "esm",

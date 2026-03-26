@@ -1,5 +1,5 @@
-import { Plugin } from "vite";
-import * as vite_listening_to0 from "vite-listening-to";
+import { Plugin } from "rolldown";
+import * as rolldown_plugin_listening_to0 from "rolldown-plugin-listening-to";
 
 //#region src/types.d.ts
 /*
@@ -44,10 +44,10 @@ interface LastFmPluginOptions {
 }
 // virtual module ambient declaration
 // Add this to your project's `env.d.ts` (or any `.d.ts` file included by
-// your tsconfig) so TypeScript understands `import … from "virtual:vite-listening-to"`.
+// your tsconfig) so TypeScript understands `import … from "virtual:rolldown-plugin-listening-to"`.
 // biome-ignore lint/correctness/noUnresolvedImports: ambient virtual module declaration
-declare module "virtual:vite-listening-to" {
-  const musicTrack: vite_listening_to0.MusicTrack;
+declare module "virtual:rolldown-plugin-listening-to" {
+  const musicTrack: rolldown_plugin_listening_to0.MusicTrack;
   export { musicTrack };
 }
 //#endregion
@@ -60,4 +60,4 @@ interface GetStreamingServicesConfig {
   use?: StreamingServiceProvider[];
 }
 //#endregion
-export { type GetStreamingServicesConfig, type LastFmPluginOptions, type MusicTrack, type StreamingServiceProvider, type StreamingServices, createPlugin as ViteListeningTo };
+export { type GetStreamingServicesConfig, type LastFmPluginOptions, type MusicTrack, createPlugin as RolldownPluginListeningTo, type StreamingServiceProvider, type StreamingServices };

@@ -1,6 +1,6 @@
 version = 1
-SPDX-PackageName = "listening-to"
-SPDX-PackageSupplier = "https://github.com/cod3ddot/listening-to"
+SPDX-PackageName = "rolldown-plugin-listening-to"
+SPDX-PackageSupplier = "https://github.com/cod3ddot/rolldown-plugin-listening-to"
 
 [[annotations]]
 path = ["dist/**/*"]

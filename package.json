@@ -1,16 +1,18 @@
 {
 	"author": "cod3ddot@proton.me",
 	"dependencies": {
+		"@rolldown/pluginutils": "^1.0.0-rc.12",
 		"sharp": "^0.34.5",
 		"zod": "^4.3.6"
 	},
-	"description": "Vite build plugin to fetch last listened to song from lastfm.",
+	"description": "Rolldown plugin to fetch last song from Last.fm.",
 	"devDependencies": {
 		"@biomejs/biome": "2.4.9",
 		"@commitlint/config-conventional": "^20.5.0",
 		"@commitlint/types": "^20.5.0",
 		"@types/bun": "^1.3.11",
 		"lefthook": "^2.1.4",
+		"rolldown": "^1.0.0-rc.12",
 		"tsdown": "^0.21.5"
 	},
 	"exports": {
@@ -26,14 +28,15 @@
 		"dist"
 	],
 	"keywords": [
-		"vite",
+		"rolldown-plugin",
+		"vite-plugin",
 		"lastfm",
 		"music"
 	],
 	"license": "MIT",
-	"name": "vite-listening-to",
+	"name": "rolldown-plugin-listening-to",
 	"peerDependencies": {
-		"vite": "^8.0.2"
+		"rolldown": "^1.0.0-rc.12"
 	},
 	"scripts": {
 		"build": "tsdown",

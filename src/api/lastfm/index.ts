@@ -50,7 +50,6 @@ export const getLastSong = async (key: string, user: string): Promise<LastFmTrac
 
 	const emptyTrack: LastFmTrack = {
 		album: "",
-		albumCover: undefined,
 		artist: "",
 		mbid: "",
 		title: ""

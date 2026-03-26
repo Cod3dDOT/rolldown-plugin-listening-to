@@ -13,16 +13,20 @@ export class Cache<T> {
 		this.#ttl = ttlMs;
 	}
 
-	#isValid(): boolean {
-		return this.#memoryCache !== null && Date.now() - this.#timestamp < this.#ttl;
+	has(): boolean {
+		return this.#memoryCache !== null && Date.now() - this.#timestamp <= this.#ttl;
 	}
 
 	get(): T | null {
-		return this.#isValid() ? this.#memoryCache : null;
+		if (!this.has()) {
+			this.clear();
+			return null;
+		}
+		return structuredClone(this.#memoryCache);
 	}
 
 	set(data: T): void {
-		this.#memoryCache = data;
+		this.#memoryCache = structuredClone(data);
 		this.#timestamp = Date.now();
 	}
 

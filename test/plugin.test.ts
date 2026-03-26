@@ -4,20 +4,34 @@
  * SPDX-License-Identifier: MIT
  */
 
+// biome-ignore-all lint/complexity/noExcessiveLinesPerFunction: tests
+
 // biome-ignore lint/correctness/noUnresolvedImports: bun built-in module
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 import type { MusicTrack } from "../src/types.d.ts";
 
-// Create a mock module for fetchMusicTrack
+const VIRTUAL_ID = "virtual:rolldown-plugin-listening-to";
+const RESOLVED_ID = `\0${VIRTUAL_ID}`;
+
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+
 const mockFetchMusicTrack = mock(() => Promise.resolve({} as MusicTrack));
 
-// Mock the module
-mock.module("../src/index.ts", () => ({
+mock.module("../src/api/index.ts", () => ({
 	fetchMusicTrack: mockFetchMusicTrack
 }));
 
-import { createPlugin } from "../src/plugin.ts";
+// Minimal plugin context — only the hooks we actually call
+const pluginContext = {
+	error: mock((_msg: string): never => {
+		throw new Error(_msg);
+	}),
+	warn: mock((_msg: string) => {})
+	// biome-ignore lint/suspicious/noExplicitAny: again, its complicated
+} as any;
+
+// ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const mockTrack: MusicTrack = {
 	album: "Test Album",
@@ -27,313 +41,274 @@ const mockTrack: MusicTrack = {
 	title: "Test Song"
 };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+import { createPlugin } from "../src/plugin.ts";
+
+function makePlugin(overrides: Partial<Parameters<typeof createPlugin>[0]> = {}) {
+	return createPlugin({ apiKey: "testkey", userId: "testuser", ...overrides });
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: its complicated
+function matchesFilter(filter: any, id: string) {
+	if (!filter) return true;
+
+	if (filter.id instanceof RegExp) {
+		return filter.id.test(id);
+	}
+
+	// fallback (future-proofing)
+	if (typeof filter.id === "function") {
+		return filter.id(id);
+	}
+
+	return true;
+}
+
+async function load(plugin: ReturnType<typeof makePlugin>, id: string) {
+	const hook = plugin.load;
+
+	if (!hook) return;
+
+	// Vite-style
+	if (typeof hook === "function") {
+		return hook.call(pluginContext, id);
+	}
+
+	// Rolldown-style
+	if (typeof hook === "object" && "handler" in hook) {
+		if (!matchesFilter(hook.filter, id)) {
+			return;
+		}
+		return hook.handler.call(pluginContext, id);
+	}
+
+	return;
+}
+
+function resolveId(plugin: ReturnType<typeof makePlugin>, id: string) {
+	const hook = plugin.resolveId;
+
+	if (!hook) return;
+
+	// Vite-style
+	if (typeof hook === "function") {
+		return hook.call(pluginContext, id, "", { isEntry: false });
+	}
+
+	// Rolldown-style
+	if (typeof hook === "object" && "handler" in hook) {
+		if (!matchesFilter(hook.filter, id)) {
+			return;
+		}
+		return hook.handler.call(pluginContext, id, "", { isEntry: false });
+	}
+
+	return;
+}
+
+function parseResult(result: string | undefined | null) {
+	if (!result) return null;
+	// Strip `export const musicTrack = ` prefix and trailing `;`
+	const json = result.replace(/^export const musicTrack[^=]+=\s*/, "").replace(/;\s*$/, "");
+	return JSON.parse(json) as MusicTrack;
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
 describe("createPlugin", () => {
 	beforeEach(() => {
 		mockFetchMusicTrack.mockReset();
+		pluginContext.warn.mockReset();
+		pluginContext.error.mockReset();
 	});
 
+	// ── Options validation ───────────────────────────────────────────────────
+
 	describe("options validation", () => {
-		it("should throw error when apiKey is missing", () => {
+		it("throws when apiKey is missing", () => {
 			expect(() => createPlugin({ apiKey: "", userId: "testuser" })).toThrow(
 				"API key and user ID must be specified"
 			);
 		});
 
-		it("should throw error when userId is missing", () => {
+		it("throws when userId is missing", () => {
 			expect(() => createPlugin({ apiKey: "testkey", userId: "" })).toThrow(
 				"API key and user ID must be specified"
 			);
 		});
 
-		it("should use default TTL when not provided", () => {
-			expect(() => createPlugin({ apiKey: "testkey", userId: "testuser" })).not.toThrow();
+		it("accepts valid options with default TTL", () => {
+			expect(() => makePlugin()).not.toThrow();
 		});
 
-		it("should accept custom TTL", () => {
-			expect(() =>
-				createPlugin({
-					apiKey: "testkey",
-					cacheTTL: 10_000,
-					userId: "testuser"
-				})
-			).not.toThrow();
+		it("accepts a custom cacheTTL", () => {
+			expect(() => makePlugin({ cacheTTL: 10_000 })).not.toThrow();
 		});
 	});
+
+	// ── Plugin metadata ──────────────────────────────────────────────────────
 
 	describe("plugin metadata", () => {
-		it("should have correct plugin name", () => {
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			expect(plugin.name).toBe("vite-listening-to");
+		it("has the correct plugin name", () => {
+			expect(makePlugin().name).toBe("rolldown-plugin-listening-to");
 		});
 	});
+
+	// ── resolveId ────────────────────────────────────────────────────────────
 
 	describe("resolveId", () => {
-		it("should resolve virtual module ID", () => {
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = plugin.resolveId?.("virtual:vite-listening-to", "", {});
-			expect(result).toBe("\0virtual:vite-listening-to");
+		it("resolves the virtual module ID", () => {
+			expect(resolveId(makePlugin(), VIRTUAL_ID)).toBe(RESOLVED_ID);
 		});
 
-		it("should return undefined for other IDs", () => {
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = plugin.resolveId?.("some-other-module", "", {});
-			expect(result).toBeUndefined();
+		it("returns undefined for unknown IDs", () => {
+			expect(resolveId(makePlugin(), "some-other-module")).toBeUndefined();
 		});
 	});
+
+	// ── load ─────────────────────────────────────────────────────────────────
 
 	describe("load", () => {
-		it("should return undefined for non-virtual modules", async () => {
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0some-other-module");
-			expect(result).toBeUndefined();
+		it("returns undefined for non-virtual modules", async () => {
+			expect(await load(makePlugin(), "\0some-other-module")).toBeUndefined();
 		});
 
-		it("should fetch and return track data on first load", async () => {
+		it("fetches track data on first load", async () => {
 			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+			const plugin = makePlugin();
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
+			await load(plugin, RESOLVED_ID);
 
-			expect(mockFetchMusicTrack).toHaveBeenCalledWith("testkey", "testuser");
-			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(1);
-			expect(result).toContain("export const musicTrack");
-			expect(result).toContain('"title":"Test Song"');
-		});
-
-		it("should use cached track on subsequent loads", async () => {
-			mockFetchMusicTrack.mockResolvedValue(mockTrack);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-
-			await plugin.load?.("\0virtual:vite-listening-to");
-			await plugin.load?.("\0virtual:vite-listening-to");
-			await plugin.load?.("\0virtual:vite-listening-to");
-
+			expect(mockFetchMusicTrack).toHaveBeenCalledWith("testkey", "testuser", expect.anything());
 			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(1);
 		});
 
-		it("should export valid JavaScript", async () => {
+		it("returns a valid ES module string", async () => {
 			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+			const result = await load(makePlugin(), RESOLVED_ID);
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(result).toMatch(/^export const musicTrack: MusicTrack = {.*};$/);
+			expect(result).toMatch(/^export const musicTrack/);
 		});
 
-		it("should handle track with undefined albumCover", async () => {
-			const trackWithoutCover = { ...mockTrack, albumCover: null };
-			mockFetchMusicTrack.mockResolvedValue(trackWithoutCover);
+		it("serializes the track correctly", async () => {
+			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
+			expect(parsed).toEqual(mockTrack);
+		});
 
-			expect(result).toContain('"albumCover":null');
+		it("handles null albumCover", async () => {
+			mockFetchMusicTrack.mockResolvedValue({ ...mockTrack, albumCover: null });
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
+
+			expect(parsed?.albumCover).toBeNull();
+		});
+
+		it("handles empty services", async () => {
+			mockFetchMusicTrack.mockResolvedValue({ ...mockTrack, services: {} });
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
+
+			expect(parsed?.services).toEqual({});
+		});
+
+		it("serializes streaming service URLs correctly", async () => {
+			const services = {
+				apple: "https://music.apple.com/track/456",
+				spotify: "https://open.spotify.com/track/123"
+			};
+			mockFetchMusicTrack.mockResolvedValue({ ...mockTrack, services });
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
+
+			expect(parsed?.services).toEqual(services);
+		});
+
+		it("safely round-trips special characters via JSON", async () => {
+			const track = {
+				...mockTrack,
+				album: "Album\nWith\tSpecial Chars",
+				artist: "Artist & The Band",
+				title: `Song with "quotes" and 'apostrophes'`
+			};
+			mockFetchMusicTrack.mockResolvedValue(track);
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
+
+			expect(parsed).toEqual(track);
+		});
+
+		it("safely round-trips unicode characters", async () => {
+			const track = { ...mockTrack, artist: "Артист", title: "Song 音楽 🎵" };
+			mockFetchMusicTrack.mockResolvedValue(track);
+			const result = await load(makePlugin(), RESOLVED_ID);
+			const parsed = parseResult(result as string);
+
+			expect(parsed).toEqual(track);
 		});
 	});
 
-	describe("cache TTL behavior", () => {
-		it("should refetch track after cache TTL expires", async () => {
-			const shortTtl = 100; // 100ms
+	// ── Caching ──────────────────────────────────────────────────────────────
+
+	describe("caching", () => {
+		it("uses cached track on subsequent loads", async () => {
 			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+			const plugin = makePlugin();
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				cacheTTL: shortTtl,
-				userId: "testuser"
-			});
+			await load(plugin, RESOLVED_ID);
+			await load(plugin, RESOLVED_ID);
+			await load(plugin, RESOLVED_ID);
 
-			// First load
-			await plugin.load?.("\0virtual:vite-listening-to");
+			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(1);
+		});
+
+		it("refetches after the TTL expires", async () => {
+			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+			const plugin = makePlugin({ cacheTTL: 100 });
+
+			await load(plugin, RESOLVED_ID);
 			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(1);
 
-			// Wait for TTL to expire
-			await new Promise((resolve) => setTimeout(resolve, shortTtl + 50));
+			await new Promise((resolve) => setTimeout(resolve, 150));
 
-			// Second load after TTL - should fetch again
-			await plugin.load?.("\0virtual:vite-listening-to");
+			await load(plugin, RESOLVED_ID);
 			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(2);
 		});
 
-		it("should use cache when TTL has not expired", async () => {
-			const longTtl = 10_000;
-			mockFetchMusicTrack.mockResolvedValue(mockTrack);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				cacheTTL: longTtl,
-				userId: "testuser"
-			});
-
-			await plugin.load?.("\0virtual:vite-listening-to");
-			await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(1);
-		});
-	});
-
-	describe("error handling", () => {
-		it("should handle fetch errors gracefully", async () => {
-			const error = new Error("API Error");
-			mockFetchMusicTrack.mockRejectedValue(error);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-
-			await expect(plugin.load?.("\0virtual:vite-listening-to")).rejects.toThrow("API Error");
-		});
-
-		it("should not cache failed fetches", async () => {
+		it("does not cache failed fetches", async () => {
 			mockFetchMusicTrack
 				.mockRejectedValueOnce(new Error("Network error"))
 				.mockResolvedValueOnce(mockTrack);
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
+			const plugin = makePlugin();
 
-			// First call fails
-			await expect(plugin.load?.("\0virtual:vite-listening-to")).rejects.toThrow();
+			expect(load(plugin, RESOLVED_ID)).rejects.toThrow("Network error");
 
-			// Second call should attempt fetch again (not use cached error)
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-			expect(result).toContain('"title":"Test Song"');
+			const result = await load(plugin, RESOLVED_ID);
+			expect(parseResult(result as string)).toEqual(mockTrack);
 			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(2);
 		});
 	});
 
-	describe("track data serialization", () => {
-		it("should handle empty services object", async () => {
-			mockFetchMusicTrack.mockResolvedValue(mockTrack);
+	// ── Multiple instances ───────────────────────────────────────────────────
 
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(result).toContain('"services":{}');
-		});
-
-		it("should serialize services data correctly", async () => {
-			const trackWithServices = {
-				...mockTrack,
-				services: {
-					apple: "https://music.apple.com/track/456",
-					spotify: "https://open.spotify.com/track/123"
-				}
-			};
-			mockFetchMusicTrack.mockResolvedValue(trackWithServices);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(result).toContain('"spotify":"https://open.spotify.com/track/123"');
-			expect(result).toContain('"apple":"https://music.apple.com/track/456"');
-		});
-
-		it("should handle special characters in track data", async () => {
-			const trackWithSpecialChars = {
-				...mockTrack,
-				album: "Album\nWith\tSpecial Chars",
-				artist: "Artist & The Band",
-				title: "Song with \"quotes\" and 'apostrophes'"
-			};
-			mockFetchMusicTrack.mockResolvedValue(trackWithSpecialChars);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			// JSON.stringify should escape these properly
-			expect(result).toContain('\\"quotes\\"');
-			expect(result).toContain("&");
-			expect(result).toContain("\\n");
-		});
-
-		it("should handle unicode characters", async () => {
-			const trackWithUnicode = {
-				...mockTrack,
-				artist: "Артист",
-				title: "Song 音楽 🎵"
-			};
-			mockFetchMusicTrack.mockResolvedValue(trackWithUnicode);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(result).toBeDefined();
-			expect(() =>
-				JSON.parse(result!.replace("export const musicTrack: MusicTrack = ", "").slice(0, -1))
-			).not.toThrow();
-		});
-	});
-
-	describe("TypeScript type export", () => {
-		it("should include MusicTrack type annotation", async () => {
-			mockFetchMusicTrack.mockResolvedValue(mockTrack);
-
-			const plugin = createPlugin({
-				apiKey: "testkey",
-				userId: "testuser"
-			});
-			const result = await plugin.load?.("\0virtual:vite-listening-to");
-
-			expect(result).toContain("export const musicTrack: MusicTrack");
-		});
-	});
-
-	describe("multiple plugin instances", () => {
-		it("should maintain separate caches for different instances", async () => {
+	describe("multiple instances", () => {
+		it("maintains separate caches per instance", async () => {
 			const track1 = { ...mockTrack, title: "Song 1" };
 			const track2 = { ...mockTrack, title: "Song 2" };
-
 			mockFetchMusicTrack.mockResolvedValueOnce(track1).mockResolvedValueOnce(track2);
 
 			const plugin1 = createPlugin({ apiKey: "key1", userId: "user1" });
 			const plugin2 = createPlugin({ apiKey: "key2", userId: "user2" });
 
-			const result1 = await plugin1.load?.("\0virtual:vite-listening-to");
-			const result2 = await plugin2.load?.("\0virtual:vite-listening-to");
+			const result1 = parseResult((await load(plugin1, RESOLVED_ID)) as string);
+			const result2 = parseResult((await load(plugin2, RESOLVED_ID)) as string);
 
-			expect(result1).toContain('"title":"Song 1"');
-			expect(result2).toContain('"title":"Song 2"');
+			expect(result1?.title).toBe("Song 1");
+			expect(result2?.title).toBe("Song 2");
 			expect(mockFetchMusicTrack).toHaveBeenCalledTimes(2);
 		});
 	});

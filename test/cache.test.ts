@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Cache } from "../src/util/cache.ts";
 
-describe("Cache", () => {
+function setupTimeMock() {
 	let originalDateNow: () => number;
 	let mockTime: number;
 
@@ -26,122 +26,146 @@ describe("Cache", () => {
 		mockTime += ms;
 	};
 
-	describe("get", () => {
-		it("should return null when cache is empty", () => {
-			const cache = new Cache<string>(5000);
-			expect(cache.get()).toBeNull();
-		});
+	return { advanceTime };
+}
 
-		it("should return cached data within TTL", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("test data");
-			expect(cache.get()).toBe("test data");
-		});
+describe("Cache: get", () => {
+	const { advanceTime } = setupTimeMock();
 
-		it("should return cached data just before TTL expires", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("test data");
-
-			advanceTime(4999);
-			expect(cache.get()).toBe("test data");
-		});
-
-		it("should return null after TTL expires", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("test data");
-
-			advanceTime(5001);
-			expect(cache.get()).toBeNull();
-		});
-
-		it("should work with complex objects", () => {
-			interface TestData {
-				id: number;
-				name: string;
-				nested: { value: boolean };
-			}
-
-			const cache = new Cache<TestData>(5000);
-			const data: TestData = {
-				id: 1,
-				name: "test",
-				nested: { value: true }
-			};
-
-			cache.set(data);
-			expect(cache.get()).toEqual(data);
-		});
+	it("returns null when cache is empty", () => {
+		const cache = new Cache<string>(5000);
+		expect(cache.get()).toBeNull();
 	});
 
-	describe("set", () => {
-		it("should store data", () => {
-			const cache = new Cache<number>(5000);
-			cache.set(42);
-			expect(cache.get()).toBe(42);
-		});
-
-		it("should update existing data", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("first");
-			cache.set("second");
-			expect(cache.get()).toBe("second");
-		});
-
-		it("should reset TTL when data is updated", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("first");
-
-			advanceTime(3000);
-			cache.set("second");
-
-			advanceTime(3000);
-			expect(cache.get()).toBe("second");
-		});
+	it("returns cached data within TTL", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test data");
+		expect(cache.get()).toBe("test data");
 	});
 
-	describe("clear", () => {
-		it("should clear cached data", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("test data");
-			cache.clear();
-			expect(cache.get()).toBeNull();
-		});
+	it("returns cached data just before TTL expires", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test data");
 
-		it("should reset timestamp", () => {
-			const cache = new Cache<string>(5000);
-			cache.set("test data");
-			cache.clear();
-			cache.set("new data");
-
-			advanceTime(4999);
-			expect(cache.get()).toBe("new data");
-		});
-
-		it("should be safe to call on empty cache", () => {
-			const cache = new Cache<string>(5000);
-			expect(() => cache.clear()).not.toThrow();
-			expect(cache.get()).toBeNull();
-		});
+		advanceTime(4999);
+		expect(cache.get()).toBe("test data");
 	});
 
-	describe("TTL variations", () => {
-		it("should work with very short TTL", () => {
-			const cache = new Cache<string>(100);
-			cache.set("test");
+	it("returns null after TTL expires", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test data");
 
-			advanceTime(99);
-			expect(cache.get()).toBe("test");
+		advanceTime(5001);
+		expect(cache.get()).toBeNull();
+	});
 
-			advanceTime(2);
-			expect(cache.get()).toBeNull();
-		});
+	it("works with complex objects", () => {
+		interface TestData {
+			id: number;
+			name: string;
+			nested: { value: boolean };
+		}
 
-		it("should work with very long TTL", () => {
-			const cache = new Cache<string>(1_000_000);
-			cache.set("test");
+		const cache = new Cache<TestData>(5000);
+		const data: TestData = {
+			id: 1,
+			name: "test",
+			nested: { value: true }
+		};
 
-			advanceTime(999_999);
-			expect(cache.get()).toBe("test");
-		});
+		cache.set(data);
+		expect(cache.get()).toEqual(data);
+	});
+});
+
+describe("Cache: set", () => {
+	const { advanceTime } = setupTimeMock();
+
+	it("stores data", () => {
+		const cache = new Cache<number>(5000);
+		cache.set(42);
+		expect(cache.get()).toBe(42);
+	});
+
+	it("updates existing data", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("first");
+		cache.set("second");
+		expect(cache.get()).toBe("second");
+	});
+
+	it("resets TTL when data is updated", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("first");
+
+		advanceTime(3000);
+		cache.set("second");
+
+		advanceTime(3000);
+		expect(cache.get()).toBe("second");
+	});
+});
+
+describe("Cache: clear", () => {
+	const { advanceTime } = setupTimeMock();
+
+	it("clears cached data", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test data");
+		cache.clear();
+		expect(cache.get()).toBeNull();
+	});
+
+	it("resets timestamp", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test data");
+		cache.clear();
+		cache.set("new data");
+
+		advanceTime(4999);
+		expect(cache.get()).toBe("new data");
+	});
+
+	it("is safe to call on empty cache", () => {
+		const cache = new Cache<string>(5000);
+		expect(() => cache.clear()).not.toThrow();
+		expect(cache.get()).toBeNull();
+	});
+});
+
+describe("Cache: TTL variations", () => {
+	const { advanceTime } = setupTimeMock();
+
+	it("works with very short TTL", () => {
+		const cache = new Cache<string>(100);
+		cache.set("test");
+
+		advanceTime(100);
+		expect(cache.get()).toBe("test"); // <= TTL valid
+
+		advanceTime(1);
+		expect(cache.get()).toBeNull();
+	});
+
+	it("handles exact TTL boundary (<= valid, > expired)", () => {
+		const cache = new Cache<string>(5000);
+		cache.set("test");
+
+		advanceTime(5000);
+		expect(cache.get()).toBe("test"); // exactly TTL → valid
+
+		advanceTime(1);
+		expect(cache.get()).toBeNull(); // TTL + 1 → expired
+	});
+
+	it("works with very long TTL", () => {
+		const cache = new Cache<string>(1_000_000);
+		cache.set("test");
+
+		advanceTime(1_000_000);
+		expect(cache.get()).toBe("test");
+
+		advanceTime(1);
+		expect(cache.get()).toBeNull();
 	});
 });

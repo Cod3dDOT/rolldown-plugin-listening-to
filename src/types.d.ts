@@ -56,9 +56,9 @@ export interface ResolvedPluginOptions {
 
 // virtual module ambient declaration
 // Add this to your project's `env.d.ts` (or any `.d.ts` file included by
-// your tsconfig) so TypeScript understands `import … from "virtual:vite-listening-to"`.
+// your tsconfig) so TypeScript understands `import … from "virtual:rolldown-plugin-listening-to"`.
 // biome-ignore lint/correctness/noUnresolvedImports: ambient virtual module declaration
-declare module "virtual:vite-listening-to" {
-	const musicTrack: import("vite-listening-to").MusicTrack;
+declare module "virtual:rolldown-plugin-listening-to" {
+	const musicTrack: import("rolldown-plugin-listening-to").MusicTrack;
 	export { musicTrack };
 }

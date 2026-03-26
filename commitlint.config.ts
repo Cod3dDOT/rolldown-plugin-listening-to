@@ -9,7 +9,6 @@ import { RuleConfigSeverity } from "@commitlint/types";
 /*
  * https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional
  */
-// biome-ignore lint/style/noDefaultExport: required by commitlint
 export default {
 	extends: ["@commitlint/config-conventional"],
 	rules: {

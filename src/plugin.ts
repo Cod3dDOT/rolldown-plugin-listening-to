@@ -4,17 +4,18 @@
  * SPDX-License-Identifier: MIT
  */
 
-import type { Plugin } from "vite";
+// biome-ignore lint/correctness/noUnresolvedImports: idk atp
+import { exactRegex } from "@rolldown/pluginutils";
+import type { Plugin } from "rolldown";
 import { fetchMusicTrack } from "@/api/index.ts";
 import type { LastFmPluginOptions, MusicTrack, ResolvedPluginOptions } from "@/types.d.ts";
 import { Cache } from "@/util/cache.ts";
 
-const VIRTUAL_MODULE_ID = "virtual:vite-listening-to";
-const RESOLVED_ID = `\0${VIRTUAL_MODULE_ID}`;
+const VIRTUAL_MODULE_ID = "virtual:rolldown-plugin-listening-to";
+const RESOLVED_VIRTUAL_MODULE_ID = `\0${VIRTUAL_MODULE_ID}`;
 
 const DEFAULT_OPTIONS: ResolvedPluginOptions = {
 	apiKey: "",
-	// biome-ignore lint/style/noMagicNumbers: 5 minutes
 	cacheTTL: 5 * 60 * 1000,
 	providers: ["musicbrainz", "openwhyd", "odesli"],
 	userId: ""
@@ -40,41 +41,35 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 			cache.clear();
 		},
 
-		async load(id) {
-			if (id !== RESOLVED_ID) {
-				return;
-			}
+		load: {
+			filter: { id: exactRegex(RESOLVED_VIRTUAL_MODULE_ID) },
+			async handler() {
+				let track = cache.get();
 
-			let track = cache.get();
-
-			if (track === null) {
-				this.warn("LAST-FM-TRACK: fetching fresh Last.fm data");
-				track = await fetchMusicTrack(resolvedOptions.apiKey, resolvedOptions.userId, {
-					use: resolvedOptions.providers
-				});
-				if (track) {
-					cache.set(track);
-					this.warn(`LAST-FM-TRACK: cached track: ${track.title}`);
+				if (track === null) {
+					this.warn("LAST-FM-TRACK: fetching fresh Last.fm data");
+					track = await fetchMusicTrack(resolvedOptions.apiKey, resolvedOptions.userId, {
+						use: resolvedOptions.providers
+					});
+					if (track) {
+						cache.set(track);
+						this.warn(`LAST-FM-TRACK: cached track: ${track.title}`);
+					} else {
+						this.error("LAST-FM-TRACK: could not fetch track");
+					}
 				} else {
-					this.error("LAST-FM-TRACK: could not fetch track");
+					this.warn(`LAST-FM-TRACK: using cached track: ${track.title}`);
 				}
-			} else {
-				this.warn(`LAST-FM-TRACK: using cached track: ${track.title}`);
+
+				// Emit a fully self-contained ES module.
+				return `export const musicTrack = ${JSON.stringify(track, null, 2)};`;
 			}
-
-			// Emit a fully self-contained ES module. The MusicTrack type is
-			// only needed at compile-time by the consumer; the runtime value
-			// is a plain object that matches the shape.
-			return [
-				`/** @type {import("vite-listening-to").MusicTrack} */`,
-				`export const musicTrack = ${JSON.stringify(track, null, 2)};`
-			].join("\n");
 		},
-		name: "vite-listening-to",
-
-		resolveId(id) {
-			if (id === VIRTUAL_MODULE_ID) {
-				return RESOLVED_ID;
+		name: "rolldown-plugin-listening-to",
+		resolveId: {
+			filter: { id: exactRegex(VIRTUAL_MODULE_ID) },
+			handler() {
+				return RESOLVED_VIRTUAL_MODULE_ID;
 			}
 		}
 	};
