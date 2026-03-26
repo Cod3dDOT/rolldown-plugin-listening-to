@@ -12,8 +12,10 @@ export default defineConfig({
 	deps: { neverBundle: ["sharp", "vite", "zod"] },
 	dts: true,
 	entry: "src/index.ts",
+	exports: true,
 	format: "esm",
 	minify: true,
 	outDir: "dist",
+	root: "src",
 	target: "node20"
 });

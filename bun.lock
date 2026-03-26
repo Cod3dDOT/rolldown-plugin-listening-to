@@ -17,7 +17,7 @@
         "tsdown": "^0.21.5",
       },
       "peerDependencies": {
-        "typescript": "latest",
+        "typescript": "",
         "vite": "^8.0.2",
       },
       "optionalPeers": [
