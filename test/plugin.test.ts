@@ -93,7 +93,7 @@ function resolveId(plugin: ReturnType<typeof makePlugin>, id: string) {
 
 	// Vite-style
 	if (typeof hook === "function") {
-		return hook.call(pluginContext, id, "", { isEntry: false });
+		return hook.call(pluginContext, id, "", { isEntry: false, kind: "dynamic-import" });
 	}
 
 	// Rolldown-style
@@ -101,7 +101,7 @@ function resolveId(plugin: ReturnType<typeof makePlugin>, id: string) {
 		if (!matchesFilter(hook.filter, id)) {
 			return;
 		}
-		return hook.handler.call(pluginContext, id, "", { isEntry: false });
+		return hook.handler.call(pluginContext, id, "", { isEntry: false, kind: "dynamic-import" });
 	}
 
 	return;
