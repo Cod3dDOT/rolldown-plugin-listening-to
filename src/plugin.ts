@@ -36,12 +36,6 @@ export function createPlugin(options: LastFmPluginOptions): Plugin {
 	const cache = new Cache<MusicTrack>(resolvedOptions.cacheTTL);
 
 	return {
-		// Run during both dev (serve) and production builds.
-		// The cache is intentionally shared across environments within a
-		// single build process (Vite 6+ builds all environments in one
-		// process), so we only need one cache instance per plugin invocation.
-		apply: "build",
-
 		buildStart() {
 			cache.clear();
 		},
