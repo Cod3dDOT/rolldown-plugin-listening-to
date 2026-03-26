@@ -22,7 +22,11 @@ export async function musicbrainzStreamingServices(
 	album: string,
 	artist: string
 ): Promise<MusicBrainzStreamingServices> {
-	const params = new URLSearchParams({ artist_name: artist, release_name: album, track_name: title });
+	const params = new URLSearchParams({
+		artist_name: artist,
+		release_name: album,
+		track_name: title
+	});
 	const base = "https://labs.api.listenbrainz.org";
 
 	const spotifyUrl = new URL(`/spotify-id-from-metadata/json?${params}`, base);
