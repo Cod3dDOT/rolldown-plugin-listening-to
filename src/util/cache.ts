@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-export class Cache<T extends object> {
+export class Cache<T> {
 	readonly #ttl: number;
 	#memoryCache: T | null = null;
 	#timestamp = 0;

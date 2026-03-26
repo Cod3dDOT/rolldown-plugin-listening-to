@@ -1,33 +1,27 @@
 {
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
-		"baseUrl": "./src",
-
 		"declaration": true,
 		"isolatedDeclarations": true,
 		"module": "preserve",
 		"moduleDetection": "force",
-
 		"moduleResolution": "bundler",
 		"noEmit": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitOverride": true,
 		"noPropertyAccessFromIndexSignature": false,
 		"noUncheckedIndexedAccess": true,
-
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"paths": {
-			"@/*": ["./*"]
+			"@/*": ["./src/*"]
 		},
+		"rootDir": "./src",
 		"skipLibCheck": true,
-
 		"strict": true,
-
 		"target": "es2024",
 		"verbatimModuleSyntax": true
 	},
 	"exclude": ["node_modules", "dist", "bunup.config.ts"],
-
 	"include": ["src/**/*", "src/types.d/.ts"]
 }
