@@ -22,7 +22,7 @@ export async function fetchMusicTrack(
 	}
 
 	const [streamingServices, albumCover] = await Promise.all([
-		getStreamingServices(lastFmTrack.title, lastFmTrack.artist, config),
+		getStreamingServices(lastFmTrack.title, lastFmTrack.album, lastFmTrack.artist, config),
 		processAlbumCover(lastFmTrack.albumCover)
 	]);
 

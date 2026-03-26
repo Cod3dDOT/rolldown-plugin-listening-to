@@ -25,6 +25,7 @@ const OpenwhydResponseSchema = z.object({
 
 export async function openwhydStreamingServices(
 	title: string,
+	album: string,
 	artist: string
 ): Promise<StreamingServices> {
 	const apiUrl = new URL("https://openwhyd.org/search");

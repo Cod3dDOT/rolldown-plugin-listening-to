@@ -41,6 +41,7 @@ export interface GetStreamingServicesConfig {
  */
 export async function getStreamingServices(
 	title: string,
+	album: string,
 	artist: string,
 	config: GetStreamingServicesConfig = {}
 ): Promise<StreamingServices> {
@@ -53,7 +54,7 @@ export async function getStreamingServices(
 
 	// Non-Odesli providers can all run concurrently.
 	const baseResults = await Promise.all(
-		baseProviderKeys.map((p) => PROVIDER_MAP[p](title, artist))
+		baseProviderKeys.map((p) => PROVIDER_MAP[p](title, album, artist))
 	);
 	const baseServices = mergeServices(...baseResults);
 
