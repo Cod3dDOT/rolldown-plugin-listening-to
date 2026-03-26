@@ -14,7 +14,12 @@
 		"tsdown": "^0.21.5"
 	},
 	"exports": {
-		".": "./dist/index.mjs",
+		".": {
+			"import": {
+				"default": "./dist/index.mjs",
+				"types": "./dist/index.d.mts"
+			}
+		},
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -30,11 +35,6 @@
 	"peerDependencies": {
 		"vite": "^8.0.2"
 	},
-	"peerDependenciesMeta": {
-		"typescript": {
-			"optional": true
-		}
-	},
 	"scripts": {
 		"build": "tsdown",
 		"lint": "bunx biome check --write",
@@ -42,6 +42,6 @@
 		"test:watch": "bun test --watch"
 	},
 	"type": "module",
-	"types": "./dist/index.d.ts",
+	"types": "./dist/index.d.mts",
 	"version": "0.1.0"
 }
