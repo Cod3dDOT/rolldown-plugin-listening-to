@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
 		"declaration": true,
+		"exactOptionalPropertyTypes": true,
 		"isolatedDeclarations": true,
 		"module": "preserve",
 		"moduleDetection": "force",
@@ -14,7 +15,9 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": [
+				"./src/*"
+			]
 		},
 		"rootDir": "./src",
 		"skipLibCheck": true,
@@ -22,6 +25,13 @@
 		"target": "es2024",
 		"verbatimModuleSyntax": true
 	},
-	"exclude": ["node_modules", "dist", "bunup.config.ts"],
-	"include": ["src/**/*", "src/types.d/.ts"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"bunup.config.ts"
+	],
+	"include": [
+		"src/**/*",
+		"src/types.d/.ts"
+	]
 }
